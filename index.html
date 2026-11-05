@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goslin Traffic Control · Status Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#CFB991;--white:#F4F1EA;--text:#C9C5BD;--grey:#8C8880;--rule:#2A2824}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:var(--white);font-family:Inter,system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+#world{position:absolute;left:0;top:0;will-change:transform}
+#path{stroke:var(--rule);stroke-width:1;fill:none}
+#trail{stroke:var(--gold);stroke-width:1.5;fill:none;stroke-linecap:round}
+.stop{fill:#000;stroke:var(--rule);stroke-width:1.5;transition:stroke .5s}
+.stop.on{stroke:var(--gold)}
+
+#plane{position:absolute;left:0;top:0;width:110px;height:60px;margin:-30px 0 0 -55px;overflow:visible;will-change:transform}
+#plane path,#plane circle{fill:none;stroke:var(--gold);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#plane g{animation:bob 4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+
+.slide{position:absolute;width:min(640px,82vw);opacity:0;transform:translateY(16px);pointer-events:none;
+  transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.slide.on{opacity:1;transform:none;pointer-events:auto}
+.k{font-size:13px;color:var(--gold);margin-bottom:18px;font-weight:500}
+h1{font-size:clamp(34px,5vw,56px);font-weight:500;letter-spacing:-.02em;line-height:1.08}
+h2{font-size:clamp(24px,3vw,34px);font-weight:500;letter-spacing:-.02em;line-height:1.18;margin-bottom:24px}
+p{font-size:16px;line-height:1.6;color:var(--text)}
+p+p{margin-top:12px}
+.sub{color:var(--grey);font-size:15px;margin-top:20px}
+ul{list-style:none}
+li{padding:10px 0;border-top:1px solid var(--rule);font-size:15px;line-height:1.5;color:var(--text);display:flex;gap:16px}
+li:last-child{border-bottom:1px solid var(--rule)}
+li b{color:var(--white);font-weight:500}
+li .r{margin-left:auto;color:var(--gold);white-space:nowrap;font-size:14px;padding-top:2px}
+.big{display:flex;gap:36px;flex-wrap:wrap;margin:4px 0 26px}
+.big div{flex:1 1 0;min-width:120px}
+.big strong{display:block;font-size:36px;font-weight:500;letter-spacing:-.02em;line-height:1}
+.big span{display:block;color:var(--grey);font-size:13px;margin-top:8px;line-height:1.4}
+.bar{margin:12px 0 6px;height:28px;border:1.5px solid var(--rule);position:relative}
+.bar i{position:absolute;left:-1.5px;top:-1.5px;bottom:-1.5px;width:0;border:1.5px solid var(--gold);transition:width 1.2s cubic-bezier(.2,.7,.2,1) .4s}
+.bar i::after{content:attr(data-l);position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--gold);white-space:nowrap}
+.bar em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--grey);font-style:normal}
+.cap{font-size:13px;color:var(--grey)}
+.ch{margin:6px 0 22px}
+.ch .t{font-size:12px;color:var(--grey);margin-bottom:8px}
+.row{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:12px;margin:6px 0;font-size:13px;color:var(--text)}
+.row .tr{height:14px;border:1.5px solid var(--rule);position:relative}
+.row .tr i{position:absolute;left:-1.5px;top:-1.5px;bottom:-1.5px;width:0;border:1.5px solid var(--gold);transition:width 1.1s cubic-bezier(.2,.7,.2,1) .4s}
+.row .tr i.d{border-color:var(--grey)}
+.row .v{text-align:right;color:var(--white);font-variant-numeric:tabular-nums}
+.stack{display:flex;height:26px;border:1.5px solid var(--rule)}
+.stack i{display:flex;align-items:center;padding-left:8px;font-size:12px;color:var(--gold);border-right:1.5px solid var(--gold);width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1) .4s;white-space:nowrap;overflow:hidden}
+.stack i.d{color:var(--grey);border-color:var(--rule)}
+.stack i:last-child{border-right:0}
+.src{font-size:12.5px;line-height:1.5;color:var(--grey)}
+.src a{display:block;padding:7px 0;border-top:1px solid var(--rule);word-break:break-all}
+.src a:last-child{border-bottom:1px solid var(--rule)}
+.src a:hover{color:var(--gold)}
+
+nav{position:fixed;left:0;right:0;bottom:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:14px}
+nav button{background:none;border:0;color:var(--grey);font:inherit;cursor:pointer;padding:8px 0;transition:color .2s,opacity .4s}
+nav button:hover{color:var(--gold)}
+nav button:disabled{opacity:0;cursor:default}
+nav button b{color:var(--white);font-weight:500}
+nav button:hover b{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<div id="world">
+<svg id="sky" style="position:absolute;left:0;top:0;overflow:visible">
+  <path id="path"/><path id="trail"/><g id="stops"></g>
+</svg>
+
+<svg id="plane" viewBox="0 0 130 70"><g>
+  <path d="M22 36 C22 28 32 24 50 24 L90 24 L120 35 L90 46 L50 46 C32 46 22 42 22 36 Z"/>
+  <path d="M28 25 L36 9 L52 9 L46 24"/>
+  <path d="M58 46 L50 62 L76 62 L84 46"/>
+  <circle cx="66" cy="34" r="3.6"/><circle cx="80" cy="34" r="3.6"/><circle cx="94" cy="34" r="3.6"/>
+</g></svg>
+
+<section class="slide" data-name="Start">
+  <div class="k">Status report, 4 November 2026</div>
+  <h1>Goslin Traffic Control</h1>
+  <p class="sub">Aryan Umale, Pranjal Bhatia, Ramitha Dasari</p>
+</section>
+
+<section class="slide" data-name="The case">
+  <div class="k">The case</div>
+  <h2>GTC has to spend $800M on a new routing system without ever going offline.</h2>
+  <p>GTC runs air traffic for 2M flights and 200M passengers a year across 24 countries. It is the only one of Europe's 29 providers that is a public-private partnership, and the EU now requires it to move to trajectory-based routing: 5 years if it goes well, 10 if it doesn't.</p>
+  <p>Airlines want lower fees, Greenpeace wants less fuel burned, regulators want safety, shareholders want returns, and the Single European Sky lets rivals bid for GTC's airspace.</p>
+  <p class="sub"><b style="color:var(--gold);font-weight:500">Our thesis:</b> GTC can turn SES compliance into a competitive advantage and win airline contracts when the market opens, through a phased rollout, a deliberate workforce strategy, and marketing built on measurable results.</p>
+</section>
+
+<section class="slide" data-name="Done so far">
+  <div class="k">Done so far</div>
+  <h2>Scoped the case, chose our angle, found a real-world twin.</h2>
+  <ul>
+    <li>Picked 6 of 8 topics: overview, transition challenges, SES/SESAR pros and cons, customer mix, PPP, SWOT.</li>
+    <li>Added a recommendation section. Four of the topics restate the case, so the recommendation is where we stand out.</li>
+    <li>Chose NATS, the UK provider, as our analog. Same PPP structure, similar size, same airline customers. We're pulling NATS and Eurocontrol data to give evidence the case doesn't.</li>
+    <li>Ideas discussed: lead SES compliance rather than react to it; run old and new systems in parallel; treat the delay numbers as a sales pitch to airlines.</li>
+  </ul>
+</section>
+
+<section class="slide" data-name="Research: PPP and SES">
+  <div class="k">Research so far · the PPP model and SES</div>
+  <h2>NATS shows what a PPP buys GTC, and what it costs.</h2>
+  <div class="ch"><div class="t">NATS ownership since 2001 [1]</div>
+    <div class="stack"><i data-w="49">Government 49%</i><i data-w="42">Airlines 42%</i><i data-w="5" class="d"></i><i data-w="4" class="d"></i></div>
+    <div class="cap" style="margin-top:6px">Plus a government golden share. Staff 5%, Heathrow 4%.</div></div>
+  <ul>
+    <li>NATS, the UK's provider, became a PPP in 2001. The government holds 49% plus a golden share, the Airline Group 42%, staff 5%, Heathrow 4%. <span class="r">[1]</span></li>
+    <li>Traffic fell after 9/11 and NATS needed refinancing in 2003. A PPP gives access to private capital but exposes GTC to traffic shocks when it carries debt. <span class="r">[2]</span></li>
+    <li>SES2+ (Regulation (EU) 2024/2803) was adopted in October 2024 and took effect 1 December 2024. <span class="r">[3][4]</span></li>
+    <li>SES launched in 2004 with four targets: 10× safety, 3× capacity, half the ATM fees, 10% less environmental impact per flight. <span class="r">[5]</span></li>
+    <li>Common Project 1 mandates the first SESAR solutions, the foundation for trajectory-based operations. <span class="r">[6]</span></li>
+  </ul>
+</section>
+
+<section class="slide" data-name="Research: delays and risk">
+  <div class="k">Research so far · delays, staffing and technology risk</div>
+  <h2>The bottleneck is people, not technology.</h2>
+  <div class="ch"><div class="t">Where the €16.1B in ATC delay costs came from, 2015–25 [7]</div>
+    <div class="row"><span>Capacity and staffing</span><span class="tr"><i data-w="70"></i></span><span class="v">70%+</span></div>
+    <div class="row"><span>Industrial action</span><span class="tr"><i data-w="15"></i></span><span class="v">15%</span></div>
+    <div class="row"><span>Other</span><span class="tr"><i data-w="15" class="d"></i></span><span class="v">~15%</span></div>
+  </div>
+  <div class="ch"><div class="t">Share of 2025 European network delays, by country [8]</div>
+    <div class="row"><span>France</span><span class="tr"><i data-w="31" class="d"></i></span><span class="v">31%</span></div>
+    <div class="row"><span>Germany</span><span class="tr"><i data-w="18"></i></span><span class="v">18%</span></div>
+  </div>
+  <div class="big">
+    <div><strong>2.5–3 yrs</strong><span>to train a controller. Hired today, live in 2029. [9]</span></div>
+    <div><strong>700k+</strong><span>passengers hit by the NATS failure of 28 Aug 2023; airlines paid about £100M and the CAA faulted NATS's resilience planning. [10][11]</span></div>
+  </div>
+  <p><b style="color:var(--white);font-weight:500">What this means for GTC.</b> An $800M system change on a 24/7 network carries real outage risk, so a parallel-run and fallback plan is not optional.</p>
+</section>
+
+<section class="slide" data-name="Still to find out">
+  <div class="k">Still to find out</div>
+  <h2>Four open questions.</h2>
+  <ul>
+    <li>How regulators set route charges. The EU caps GTC's price, so "customers want it cheaper" works differently here.</li>
+    <li>Fuel and cost saved per flight under trajectory-based routing, to estimate payback on the $800M.</li>
+    <li>What worked and failed in similar rollouts, such as France's 4-Flight.</li>
+    <li>How German ATC unions behave in transitions, and how other providers avoided strikes.</li>
+  </ul>
+</section>
+
+<section class="slide" data-name="Our argument">
+  <div class="k">Our argument</div>
+  <h2>Lead the change instead of reacting to it.</h2>
+  <ul>
+    <li><span><b>Phase the rollout.</b> Start in the busiest sectors, run old and new systems side by side, finish in 5 years rather than 10.</span></li>
+    <li><span><b>Hire and retrain now.</b> Training takes 3 years. Bring unions in early so there are no strikes.</span></li>
+    <li><span><b>Market on results.</b> Publish fuel saved and delay minutes cut, then sell those numbers to airlines as the market opens.</span></li>
+  </ul>
+  <div class="ch" style="margin-top:22px"><div class="t">Why hiring has to start now (2026 start) [9]</div>
+    <div class="row"><span>Controllers hired now</span><span class="tr"><i data-w="30"></i></span><span class="v">2029</span></div>
+    <div class="row"><span>5-year rollout</span><span class="tr"><i data-w="50"></i></span><span class="v">2031</span></div>
+    <div class="row"><span>10-year rollout</span><span class="tr"><i data-w="100" class="d"></i></span><span class="v">2036</span></div>
+  </div>
+</section>
+
+<section class="slide" data-name="Backing">
+  <div class="k">Backing</div>
+  <h2>The upgrade is affordable, and waiting is the expensive option.</h2>
+  <div class="bar"><i data-w="29.5" data-l="$800M upgrade"></i><em>$2,716M PPP capital</em></div>
+  <p class="cap">The upgrade is 29% of the $2,716M GTC has raised as a PPP. We'll show how the PPP structure and partnerships fund the rollout.</p>
+  <div class="bar" style="margin-top:24px"><i data-w="50" data-l="5-year rollout · done 2031"></i><em>10-year rollout · done 2036</em></div>
+  <p class="cap">A slow rollout delays every benefit by up to 5 years. Delay reductions can be pitched to airlines as savings against the €16.1B Europe lost to ATC delays.</p>
+  <p style="margin-top:24px"><b style="color:var(--white);font-weight:500">Conceptual.</b> A SWOT built from the case challenges and footnotes, and a stakeholder map: airlines, passengers, airports, government, shareholders and environmental groups each want something different, and the plan answers each one.</p>
+  <p style="margin-top:12px"><b style="color:var(--white);font-weight:500">Ethical.</b> Safety is non-negotiable; SES itself puts it ahead of fuel savings. Shorter routes cut fuel burn and emissions. Current controllers are retrained, not replaced. Government investment makes GTC accountable to taxpayers as well as shareholders.</p>
+</section>
+
+<section class="slide" data-name="Next steps">
+  <div class="k">Next steps</div>
+  <h2>Who does what.</h2>
+  <ul>
+    <li>Overview and SWOT slides<span class="r">Aryan</span></li>
+    <li>SES/SESAR, transition challenges, financial backing<span class="r">Ramitha</span></li>
+    <li>PPP, customer mix, recommendation<span class="r">Pranjal</span></li>
+    <li>Open research items<span class="r">Section owners</span></li>
+    <li>Merge slides, consistent design<span class="r">Aryan</span></li>
+    <li>Two timed run-throughs, then Q&amp;A drafts<span class="r">Everyone</span></li>
+  </ul>
+  <p class="sub">Target: under 10 minutes.</p>
+</section>
+
+<section class="slide" data-name="Questions">
+  <div class="k">Questions for the board</div>
+  <h2>Three things to clarify.</h2>
+  <ul>
+    <li>Can we use real-world data (NATS, Eurocontrol, EU regulation), or only the facts in the case?</li>
+    <li>The case gives the investment in dollars but GTC operates in euros. Which should we present?</li>
+    <li>We read the "three levels of customers" as airlines, their passengers, and the airports GTC runs. Is that the intended reading?</li>
+  </ul>
+</section>
+
+<section class="slide" data-name="Sources">
+  <div class="k">Sources</div>
+  <div class="src">
+    <a href="https://en.wikipedia.org/wiki/NATS_Holdings" target="_blank" rel="noopener">1. https://en.wikipedia.org/wiki/NATS_Holdings</a>
+    <a href="https://www.nao.org.uk/wp-content/uploads/2004/01/0304157es.pdf" target="_blank" rel="noopener">2. https://www.nao.org.uk/wp-content/uploads/2004/01/0304157es.pdf</a>
+    <a href="https://www.themeditelegraph.com/en/transport/road-rail-air-transport/2024/11/28/news/the_single_european_sky_ses_2_reform-14848155/" target="_blank" rel="noopener">3. https://www.themeditelegraph.com/en/transport/road-rail-air-transport/2024/11/28/news/the_single_european_sky_ses_2_reform-14848155/</a>
+    <a href="https://transport.ec.europa.eu/news-events/news/single-european-sky-regulation-enters-force-aiming-more-efficient-and-sustainable-airspace-2024-12-02_en" target="_blank" rel="noopener">4. https://transport.ec.europa.eu/news-events/news/single-european-sky-regulation-enters-force-aiming-more-efficient-and-sustainable-airspace-2024-12-02_en</a>
+    <a href="https://ulc.gov.pl/en/air-navigation/atm-oversight/single-european-sky" target="_blank" rel="noopener">5. https://ulc.gov.pl/en/air-navigation/atm-oversight/single-european-sky</a>
+    <a href="https://www.easa.europa.eu/en/node/141486" target="_blank" rel="noopener">6. https://www.easa.europa.eu/en/node/141486</a>
+    <a href="https://avweb.com/aviation-news/european-air-traffic-delays-rise-high-cost/" target="_blank" rel="noopener">7. https://avweb.com/aviation-news/european-air-traffic-delays-rise-high-cost/</a>
+    <a href="https://www.travelextra.ie/?p=78981" target="_blank" rel="noopener">8. https://www.travelextra.ie/?p=78981</a>
+    <a href="https://www.travelextra.ie/?p=72343" target="_blank" rel="noopener">9. https://www.travelextra.ie/?p=72343</a>
+    <a href="https://www.caa.co.uk/newsroom/news/aviation-regulator-publishes-independent-review-into-august-2023-nats-flight-planning-system-failure/" target="_blank" rel="noopener">10. https://www.caa.co.uk/newsroom/news/aviation-regulator-publishes-independent-review-into-august-2023-nats-flight-planning-system-failure/</a>
+    <a href="https://travelradar.aero/?p=64771" target="_blank" rel="noopener">11. https://travelradar.aero/?p=64771</a>
+  </div>
+</section>
+</div>
+
+<nav>
+  <button id="prev"></button>
+  <button id="next"></button>
+</nav>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')],N=slides.length;
+const world=document.getElementById('world'),path=document.getElementById('path'),trail=document.getElementById('trail'),
+      stops=document.getElementById('stops'),plane=document.getElementById('plane');
+const GAP=1100,X0=400;
+const ys=[420,260,660,340,700,300,600,280,640,440,360];
+const pts=slides.map((s,i)=>({x:X0+i*GAP,y:ys[i]}));
+const loops=new Set();
+let d=`M${pts[0].x} ${pts[0].y}`;
+for(let i=1;i<N;i++){
+  const a=pts[i-1],b=pts[i];
+  if(loops.has(i-1)){
+    const m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    d+=` C${a.x+GAP*.25} ${a.y} ${m.x-GAP*.25} ${m.y} ${m.x} ${m.y}`;
+    d+=` a130 130 0 1 1 2 0`;
+    d+=` C${m.x+GAP*.25} ${m.y} ${b.x-GAP*.25} ${b.y} ${b.x} ${b.y}`;
+  } else d+=` C${a.x+GAP*.45} ${a.y} ${b.x-GAP*.45} ${b.y} ${b.x} ${b.y}`;
+}
+path.setAttribute('d',d);trail.setAttribute('d',d);
+const L=path.getTotalLength();trail.style.strokeDasharray=L;trail.style.strokeDashoffset=L;
+const stopLen=pts.map(p=>{let best=0,bd=1e9;for(let l=0;l<=L;l+=3){const q=path.getPointAtLength(l);const dd=(q.x-p.x)**2+(q.y-p.y)**2;if(dd<bd){bd=dd;best=l}}return best});
+pts.forEach((p,i)=>{
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',4);c.setAttribute('class','stop');stops.appendChild(c);
+  slides[i].style.left=p.x-40+'px';slides[i].style.top=p.y+70+'px';
+});
+
+let cur=-1,pos=0,raf,flying=false;
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function render(len){
+  const a=path.getPointAtLength(len),b=path.getPointAtLength(Math.min(L,len+2)),c=path.getPointAtLength(Math.max(0,len-2));
+  const ang=Math.atan2(b.y-c.y,b.x-c.x)*180/Math.PI;
+  plane.style.transform=`translate(${a.x}px,${a.y}px) rotate(${ang}deg)`;
+  trail.style.strokeDashoffset=L-len;
+  world.style.transform=`translate(${innerWidth*.3-a.x}px,${innerHeight*.2-a.y}px)`;
+}
+function go(i){
+  if(i<0||i>=N||i===cur||flying)return;
+  const from=pos,to=stopLen[i],first=cur<0;cur=i;
+  slides.forEach(s=>s.classList.remove('on'));
+  [...stops.children].forEach((c,j)=>c.classList.toggle('on',j<=i));
+  const prev=document.getElementById('prev'),next=document.getElementById('next');
+  prev.disabled=i===0;next.disabled=i===N-1;
+  prev.innerHTML=i>0?`← <b>${slides[i-1].dataset.name}</b>`:'';
+  next.innerHTML=i<N-1?`<b>${slides[i+1].dataset.name}</b> →`:'';
+  const land=()=>{
+    slides[i].classList.add('on');
+    slides[i].querySelectorAll('.bar i,.tr i,.stack i').forEach(b=>{b.style.width=0;requestAnimationFrame(()=>requestAnimationFrame(()=>b.style.width=b.dataset.w+'%'))});
+  };
+  if(first){pos=to;render(pos);land();return}
+  flying=true;cancelAnimationFrame(raf);
+  const t0=performance.now(),dur=Math.min(2200,900+Math.abs(to-from)*.6);
+  (function step(t){
+    const k=Math.min(1,(t-t0)/dur);pos=from+(to-from)*ease(k);render(pos);
+    if(k<1)raf=requestAnimationFrame(step);else{flying=false;land()}
+  })(t0);
+}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+addEventListener('keydown',e=>{if(['ArrowRight',' ','Enter','ArrowDown'].includes(e.key)){e.preventDefault();go(cur+1)}if(['ArrowLeft','ArrowUp'].includes(e.key))go(cur-1)});
+let acc=0,wt;
+addEventListener('wheel',e=>{acc+=e.deltaY+e.deltaX;clearTimeout(wt);wt=setTimeout(()=>acc=0,200);
+  if(Math.abs(acc)>120&&!flying){go(cur+(acc>0?1:-1));acc=0}},{passive:true});
+let tx=0;addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(cur+(dx<0?1:-1))});
+addEventListener('resize',()=>render(pos));
+go(0);
+</script>
+</body>
+</html>
