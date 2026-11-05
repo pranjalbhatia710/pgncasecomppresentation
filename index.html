@@ -22,9 +22,10 @@ a{color:inherit;text-decoration:none}
 #plane g{animation:bob 4s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-3px)}}
 
-.slide{position:absolute;width:min(640px,82vw);opacity:0;transform:translateY(16px);pointer-events:none;
+.slide{position:absolute;width:min(640px,calc(100vw - 48px));max-height:calc(100vh - 20vh - 70px - 76px);max-height:calc(100dvh - 20dvh - 70px - 76px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-right:4px;opacity:0;transform:translateY(16px);pointer-events:none;
   transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
 .slide.on{opacity:1;transform:none;pointer-events:auto}
+.slide::-webkit-scrollbar{display:none}
 .k{font-size:13px;color:var(--gold);margin-bottom:18px;font-weight:500}
 h1{font-size:clamp(34px,5vw,56px);font-weight:500;letter-spacing:-.02em;line-height:1.08}
 h2{font-size:clamp(24px,3vw,34px);font-weight:500;letter-spacing:-.02em;line-height:1.18;margin-bottom:24px}
@@ -67,6 +68,18 @@ li .r{margin-left:auto;color:var(--gold);white-space:nowrap;font-size:14px;paddi
 
 .doc{color:var(--gold);border-bottom:1px solid var(--gold);padding-bottom:1px}
 .doc:hover{color:var(--white);border-color:var(--white)}
+@media(max-width:640px){
+  #plane{width:84px;height:46px;margin:-23px 0 0 -42px}
+  .k{margin-bottom:12px}
+  h1{font-size:34px} h2{font-size:23px;margin-bottom:16px}
+  p,li{font-size:15px} li{padding:9px 0;gap:10px}
+  .big{gap:18px 24px;margin-bottom:18px} .big div{flex:1 1 40%;min-width:0} .big strong{font-size:28px}
+  .row{grid-template-columns:96px 1fr 40px;gap:8px;font-size:12px}
+  .bar{height:26px} .bar em{font-size:11px} .bar i::after{font-size:11px}
+  .stack i{font-size:11px;padding-left:5px}
+  .src{font-size:11.5px}
+  nav{padding:0 20px;height:60px;font-size:13px}
+}
 nav{position:fixed;left:0;right:0;bottom:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:14px}
 nav button{background:none;border:0;color:var(--grey);font:inherit;cursor:pointer;padding:8px 0;transition:color .2s,opacity .4s}
 nav button:hover{color:var(--gold)}
@@ -259,7 +272,7 @@ const stopLen=pts.map(p=>{let best=0,bd=1e9;for(let l=0;l<=L;l+=3){const q=path.
 pts.forEach((p,i)=>{
   const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
   c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',4);c.setAttribute('class','stop');stops.appendChild(c);
-  slides[i].style.left=p.x-40+'px';slides[i].style.top=p.y+70+'px';
+  slides[i].style.left=p.x-(innerWidth<640?40:40)+'px';slides[i].style.top=p.y+70+'px';
 });
 
 let cur=-1,pos=0,raf,flying=false;
@@ -269,7 +282,7 @@ function render(len){
   const ang=Math.atan2(b.y-c.y,b.x-c.x)*180/Math.PI;
   plane.style.transform=`translate(${a.x}px,${a.y}px) rotate(${ang}deg)`;
   trail.style.strokeDashoffset=L-len;
-  world.style.transform=`translate(${innerWidth*.3-a.x}px,${innerHeight*.2-a.y}px)`;
+  world.style.transform=`translate(${Math.min(innerWidth*.3,64)-a.x}px,${innerHeight*.2-a.y}px)`;
 }
 function go(i){
   if(i<0||i>=N||i===cur||flying)return;
@@ -298,9 +311,9 @@ addEventListener('keydown',e=>{if(['ArrowRight',' ','Enter','ArrowDown'].include
 let acc=0,wt;
 addEventListener('wheel',e=>{acc+=e.deltaY+e.deltaX;clearTimeout(wt);wt=setTimeout(()=>acc=0,200);
   if(Math.abs(acc)>120&&!flying){go(cur+(acc>0?1:-1));acc=0}},{passive:true});
-let tx=0;addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
-addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(cur+(dx<0?1:-1))});
-addEventListener('resize',()=>render(pos));
+let tx=0,ty=0;addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)go(cur+(dx<0?1:-1))});
+addEventListener('resize',()=>{render(pos)});
 go(0);
 </script>
 </body>
