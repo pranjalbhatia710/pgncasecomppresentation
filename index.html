@@ -22,7 +22,7 @@ a{color:inherit;text-decoration:none}
 #plane g{animation:bob 4s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-3px)}}
 
-.slide{position:absolute;width:min(640px,calc(100vw - 48px));max-height:calc(100vh - 20vh - 70px - 76px);max-height:calc(100dvh - 20dvh - 70px - 76px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-right:4px;opacity:0;transform:translateY(16px);pointer-events:none;
+.slide{position:absolute;width:min(640px,calc(100vw - 48px));max-height:calc(100vh - 20vh - 58px - 76px);max-height:calc(100dvh - 20dvh - 58px - 76px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-right:4px;opacity:0;transform:translateY(16px);pointer-events:none;
   transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
 .slide.on{opacity:1;transform:none;pointer-events:auto}
 .slide::-webkit-scrollbar{display:none}
@@ -68,6 +68,7 @@ li .r{margin-left:auto;color:var(--gold);white-space:nowrap;font-size:14px;paddi
 
 .doc{color:var(--gold);border-bottom:1px solid var(--gold);padding-bottom:1px}
 .doc:hover{color:var(--white);border-color:var(--white)}
+@media(max-height:799px){.slide{max-height:calc(100vh - 15vh - 58px - 76px);max-height:calc(100dvh - 15dvh - 58px - 76px)}}
 @media(max-width:640px){
   #plane{width:84px;height:46px;margin:-23px 0 0 -42px}
   .k{margin-bottom:12px}
@@ -272,7 +273,7 @@ const stopLen=pts.map(p=>{let best=0,bd=1e9;for(let l=0;l<=L;l+=3){const q=path.
 pts.forEach((p,i)=>{
   const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
   c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',4);c.setAttribute('class','stop');stops.appendChild(c);
-  slides[i].style.left=p.x-(innerWidth<640?40:40)+'px';slides[i].style.top=p.y+70+'px';
+  slides[i].style.left=p.x-(innerWidth<640?40:40)+'px';slides[i].style.top=p.y+58+'px';
 });
 
 let cur=-1,pos=0,raf,flying=false;
@@ -282,7 +283,8 @@ function render(len){
   const ang=Math.atan2(b.y-c.y,b.x-c.x)*180/Math.PI;
   plane.style.transform=`translate(${a.x}px,${a.y}px) rotate(${ang}deg)`;
   trail.style.strokeDashoffset=L-len;
-  world.style.transform=`translate(${Math.min(innerWidth*.3,64)-a.x}px,${innerHeight*.2-a.y}px)`;
+  const sw=Math.min(640,innerWidth-48),ox=(innerWidth-sw)/2+40,oy=innerHeight*(innerHeight<800?.15:.2);
+  world.style.transform=`translate(${ox-a.x}px,${oy-a.y}px)`;
 }
 function go(i){
   if(i<0||i>=N||i===cur||flying)return;
